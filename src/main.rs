@@ -97,7 +97,7 @@ fn profileFromMotifs(motifs: &Vec<String>) -> Vec<Vec<f64>>{
         let curr = &*motifs.get(seq).unwrap();
         for i in 0..curr.len() {
             let c = curr.chars().collect::<Vec<char>>()[i];
-            profile[nucleotideToIndex(c)][i] = profile[nucleotideToIndex(c)][i+1];
+            profile[nucleotideToIndex(c)][i] = profile[nucleotideToIndex(c)][i] + 1.0;
         }
 
         for i in 0..profile.len(){
