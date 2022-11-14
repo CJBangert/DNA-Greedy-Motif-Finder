@@ -14,20 +14,10 @@ fn main() {
     let t:u32 = args.get(1).unwrap().to_string().parse::<u32>().unwrap();
     //rest of args input are the dna strings
     //
-    //let dna = args[2..].to_vec();
+    let dna = args[2..].to_vec();
     println!("{} {}", k,t);
 
-    let out:Vec<&str> = greedyMotifSearch(k,t,args[2..].to_vec());
-
-    for i in out {
-        println!("{}",i);
-    }
-}
-
-
-fn greedyMotifSearch(k:u32, t:u32, dna:Vec<&str>) -> Vec<&str>{
-
-    let mut bestMotifs:Vec<&str>  = Vec::<&str>::new();
+    let mut bestMotifs  = Vec::<String>::new();
 
     let mut bestScore:i32 = -1;
 
@@ -35,17 +25,19 @@ fn greedyMotifSearch(k:u32, t:u32, dna:Vec<&str>) -> Vec<&str>{
 
     for m in 0..=(kmerSize - k){
         //since arr size is read from a file and t is not known at compile time, allocate entire vec at once for efficiency
-        let mut motifs = Vec::<&str>::with_capacity(t.try_into().unwrap());
+        let mut motifs = Vec::<String>::with_capacity(t.try_into().unwrap());
 
-        motifs.push(dna.get(0).unwrap().substring(m.try_into().unwrap(), (m+k).try_into().unwrap()));
+        motifs.push(String::from(dna.get(0).unwrap().substring(m.try_into().unwrap(), (m+k).try_into().unwrap())));
 
         for i in 1..t{
-            let mut prevMotifs = Vec::<&str>::with_capacity(i.try_into().unwrap());
+            let mut prevMotifs = Vec::<String>::with_capacity(i.try_into().unwrap());
             for x in 0..i{
-                prevMotifs.push(motifs.get::<usize>(x.try_into().unwrap()).unwrap());
+                prevMotifs.push(motifs.get::<usize>(x.try_into().unwrap()).unwrap().clone());
             }
             let profile = profileFromMotifs(&prevMotifs);
-            motifs.insert(i.try_into().unwrap(), profileMostProbableKmer(dna.get(i as usize).unwrap(), k, profile).as_str()); 
+
+            let elt = profileMostProbableKmer(dna.get(i as usize).unwrap(), k, profile);
+            motifs.insert(i.try_into().unwrap(),elt ); 
         }
 
         let currScore = scoreMotifs(&motifs);
@@ -55,18 +47,54 @@ fn greedyMotifSearch(k:u32, t:u32, dna:Vec<&str>) -> Vec<&str>{
         }
     }
 
-
-
-
-    bestMotifs
-
+    for i in bestMotifs {
+        println!("{}",i);
+    }
 }
 
-fn profileFromMotifs(motifs: &Vec<&str>) -> Vec<Vec<f64>>{
+
+// fn greedyMotifSearch(k:u32, t:u32, dna:Vec<&str>) -> Vec<&str>{
+
+//     let mut bestMotifs:Vec<&str>  = Vec::<&str>::new();
+
+//     let mut bestScore:i32 = -1;
+
+//     let kmerSize = u32::try_from(dna.get(0).unwrap().len()).unwrap();
+
+//     for m in 0..=(kmerSize - k){
+//         //since arr size is read from a file and t is not known at compile time, allocate entire vec at once for efficiency
+//         let mut motifs = Vec::<&str>::with_capacity(t.try_into().unwrap());
+
+//         motifs.push(dna.get(0).unwrap().substring(m.try_into().unwrap(), (m+k).try_into().unwrap()));
+
+//         for i in 1..t{
+//             let mut prevMotifs = Vec::<&str>::with_capacity(i.try_into().unwrap());
+//             for x in 0..i{
+//                 prevMotifs.push(motifs.get::<usize>(x.try_into().unwrap()).unwrap());
+//             }
+//             let profile = profileFromMotifs(&prevMotifs);
+//             motifs.insert(i.try_into().unwrap(), profileMostProbableKmer(dna.get(i as usize).unwrap(), k, profile).as_str()); 
+//         }
+
+//         let currScore = scoreMotifs(&motifs);
+//         if currScore > bestScore {
+//             bestScore = currScore;
+//             bestMotifs = motifs;
+//         }
+//     }
+
+
+
+
+//     bestMotifs
+
+// }
+
+fn profileFromMotifs(motifs: &Vec<String>) -> Vec<Vec<f64>>{
     //vec with capacity 4 x len(motifs[0])
     let mut profile:Vec::<Vec::<f64>> = vec![vec![0.0; motifs.get(0).unwrap().len()];4];
     for seq in  0..motifs.len() {
-        let curr = *motifs.get(seq).unwrap();
+        let curr = &*motifs.get(seq).unwrap();
         for i in 0..curr.len() {
             let c = curr.chars().collect::<Vec<char>>()[i];
             profile[nucleotideToIndex(c)][i] = profile[nucleotideToIndex(c)][i+1];
@@ -98,7 +126,7 @@ fn profileMostProbableKmer(sequence: &str, k: u32, profile:Vec<Vec<f64>>) -> Str
     best
 }
 
-fn scoreMotifs(motifs: &Vec<&str>) -> i32{
+fn scoreMotifs(motifs: &Vec<String>) -> i32{
     let profile:Vec<Vec<f64>> = profileFromMotifs(motifs);
     let mut consensus = String::new();
     for i in 0..motifs[0].len() {
